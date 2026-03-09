@@ -1,0 +1,65 @@
+{
+  "name": "@openclaw/remote-installer",
+  "version": "1.0.0",
+  "description": "Remote OpenClaw installation tool for macOS via SSH/Tailscale",
+  "main": "scripts/main.js",
+  "bin": {
+    "openclaw-installer": "./scripts/main.js",
+    "openclaw-installer-web": "./scripts/web-server.js",
+    "openclaw-installer-complete": "./scripts/install-complete.js"
+  },
+  "scripts": {
+    "start": "node scripts/web-server.js",
+    "web": "node scripts/web-server.js",
+    "cli": "node scripts/main.js",
+    "install-ssh": "node scripts/install-via-ssh.js",
+    "install-complete": "node scripts/install-complete.js",
+    "batch": "node scripts/batch-install.js",
+    "test": "echo \"No tests yet\"",
+    "prepublishOnly": "echo 'Ready to publish'"
+  },
+  "dependencies": {
+    "ssh2": "^1.15.0",
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "inquirer": "^9.2.0",
+    "chalk": "^5.3.0",
+    "ora": "^7.0.0",
+    "boxen": "^7.1.0",
+    "qrcode": "^1.5.3"
+  },
+  "keywords": [
+    "openclaw",
+    "remote",
+    "install",
+    "macos",
+    "ssh",
+    "tailscale",
+    "automation",
+    "deployment"
+  ],
+  "author": "OpenClaw Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/openclaw/remote-installer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/openclaw/openclaw/issues"
+  },
+  "homepage": "https://github.com/openclaw/remote-installer#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "preferGlobal": true,
+  "files": [
+    "scripts/",
+    "web/",
+    "config/",
+    "start.sh",
+    "README.md",
+    "GUIDE.md",
+    "NAT-SOLUTIONS.md",
+    "INSTALLATION-COMPARISON.md"
+  ]
+}

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw Remote Installer</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 42px;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .header p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .tasks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+    }
+
+    .task-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+
+    .task-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .task-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .task-status {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-pending { background: #fef3c7; color: #92400e; }
+    .status-running { background: #dbeafe; color: #1e40af; }
+    .status-completed { background: #d1fae5; color: #065f46; }
+    .status-failed { background: #fee2e2; color: #991b1b; }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 15px 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.3s ease;
+    }
+
+    .task-info {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .task-logs {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 15px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      color: #374151;
+    }
+
+    .log-error {
+      color: #dc2626;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #9ca3af;
+    }
+
+    .empty-state svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e5e7eb;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🦞 OpenClaw Remote Installer</h1>
+      <p>远程安装 OpenClaw 到 macOS 系统</p>
+      <div style="margin-top: 20px;">
+        <a href="/wizard" style="color: white; text-decoration: none; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 8px; display: inline-block;">
+          🧭 使用安装向导（推荐新手）
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px;">
+        <strong>💡 提示：</strong> 如果目标 Mac 没有公网 IP，请先配置内网穿透（推荐 <a href="https://tailscale.com" target="_blank" style="color: #2563eb;">Tailscale</a>）。
+        <a href="#" id="showNatHelp" style="color: #2563eb; margin-left: 10px;">查看详细方案 →</a>
+      </div>
+      
+      <h2 style="margin-bottom: 20px;">新建安装任务</h2>
+      <form id="installForm">
+        <div class="form-group">
+          <label for="name">任务名称</label>
+          <input type="text" id="name" placeholder="例如：朋友的 Mac" required>
+        </div>
+
+        <div class="form-group">
+          <label for="method">连接方式</label>
+          <select id="method" required>
+            <option value="ssh">SSH (推荐)</option>
+            <option value="vnc" disabled>VNC (开发中)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="host">主机地址</label>
+          <input type="text" id="host" placeholder="192.168.1.100 或 100.64.1.2 (Tailscale IP)" required>
+          <small style="color: #666; font-size: 12px; margin-top: 4px; display: block;">
+            💡 局域网 IP (192.168.x.x) 或 Tailscale IP (100.64.x.x)
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="username">用户名</label>
+          <input type="text" id="username" placeholder="admin" required>
+        </div>
+
+        <div class="form-group">
+          <label for="authMethod">认证方式</label>
+          <select id="authMethod">
+            <option value="key">SSH 密钥</option>
+            <option value="password">密码</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="keyPathGroup">
+          <label for="keyPath">SSH 密钥路径</label>
+          <input type="text" id="keyPath" placeholder="~/.ssh/id_rsa">
+        </div>
+
+        <div class="form-group" id="passwordGroup" style="display: none;">
+          <label for="password">密码</label>
+          <input type="password" id="password" placeholder="••••••••">
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">
+          开始安装
+        </button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-bottom: 20px;">安装任务</h2>
+      <div id="tasksList" class="tasks-grid">
+        <div class="empty-state">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <p>暂无安装任务</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    const form = document.getElementById('installForm');
+    const tasksList = document.getElementById('tasksList');
+    const authMethodSelect = document.getElementById('authMethod');
+    const keyPathGroup = document.getElementById('keyPathGroup');
+    const passwordGroup = document.getElementById('passwordGroup');
+
+    // 显示 NAT 解决方案帮助
+    document.getElementById('showNatHelp').addEventListener('click', (e) => {
+      e.preventDefault();
+      const helpText = `
+📡 内网穿透解决方案
+
+如果目标 Mac 没有公网 IP，推荐以下方案：
+
+1️⃣ Tailscale（最推荐）
+   - 完全免费，5 分钟搞定
+   - 两台 Mac 都安装：brew install tailscale
+   - 运行：sudo tailscale up
+   - 查看 IP：tailscale ip -4
+   - 填写 Tailscale IP（100.64.x.x）
+
+2️⃣ macOS 原生屏幕共享
+   - 系统设置 → 共享 → 屏幕共享 → 生成链接
+   - 打开链接，控制屏幕，手动安装
+
+3️⃣ ZeroTier
+   - 免费，类似 Tailscale
+   - brew install zerotier-one
+   - 加入网络后获得虚拟 IP
+
+详细文档：查看 NAT-SOLUTIONS.md
+      `;
+      alert(helpText);
+    });
+
+    // 切换认证方式
+    authMethodSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'password') {
+        keyPathGroup.style.display = 'none';
+        passwordGroup.style.display = 'block';
+      } else {
+        keyPathGroup.style.display = 'block';
+        passwordGroup.style.display = 'none';
+      }
+    });
+
+    // 提交表单
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> 创建中...';
+
+      const data = {
+        name: document.getElementById('name').value,
+        method: document.getElementById('method').value,
+        host: document.getElementById('host').value,
+        username: document.getElementById('username').value
+      };
+
+      if (authMethodSelect.value === 'password') {
+        data.password = document.getElementById('password').value;
+      } else {
+        data.keyPath = document.getElementById('keyPath').value;
+      }
+
+      try {
+        const response = await fetch('/api/install', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          form.reset();
+          loadTasks();
+        } else {
+          alert('创建失败: ' + result.error);
+        }
+      } catch (err) {
+        alert('网络错误: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '开始安装';
+      }
+    });
+
+    // 加载任务列表
+    async function loadTasks() {
+      try {
+        const response = await fetch('/api/tasks');
+        const tasks = await response.json();
+        renderTasks(tasks);
+      } catch (err) {
+        console.error('加载任务失败:', err);
+      }
+    }
+
+    // 渲染任务列表
+    function renderTasks(tasks) {
+      if (tasks.length === 0) {
+        tasksList.innerHTML = `
+          <div class="empty-state">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p>暂无安装任务</p>
+          </div>
+        `;
+        return;
+      }
+
+      tasksList.innerHTML = tasks.map(task => `
+        <div class="task-card" data-task-id="${task.id}">
+          <div class="task-header">
+            <div class="task-name">${task.name}</div>
+            <div class="task-status status-${task.status}">${getStatusText(task.status)}</div>
+          </div>
+          
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${task.progress}%"></div>
+          </div>
+          
+          <div class="task-info">📍 ${task.host}</div>
+          <div class="task-info">👤 ${task.username || 'N/A'}</div>
+          <div class="task-info">⏱️ ${formatTime(task.startTime)}</div>
+          
+          ${task.error ? `<div class="task-info" style="color: #dc2626;">❌ ${task.error}</div>` : ''}
+          
+          <div class="task-logs" id="logs-${task.id}">
+            ${task.logs ? task.logs.map(log => `
+              <div class="log-entry ${log.level === 'error' ? 'log-error' : ''}">
+                ${log.message}
+              </div>
+            `).join('') : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // WebSocket 更新
+    socket.on('task-update', (task) => {
+      const card = document.querySelector(`[data-task-id="${task.id}"]`);
+      if (card) {
+        // 更新进度条
+        const progressFill = card.querySelector('.progress-fill');
+        if (progressFill) {
+          progressFill.style.width = task.progress + '%';
+        }
+
+        // 更新状态
+        const statusEl = card.querySelector('.task-status');
+        if (statusEl) {
+          statusEl.className = `task-status status-${task.status}`;
+          statusEl.textContent = getStatusText(task.status);
+        }
+
+        // 更新日志
+        const logsEl = card.querySelector('.task-logs');
+        if (logsEl && task.logs) {
+          logsEl.innerHTML = task.logs.map(log => `
+            <div class="log-entry ${log.level === 'error' ? 'log-error' : ''}">
+              ${log.message}
+            </div>
+          `).join('');
+          logsEl.scrollTop = logsEl.scrollHeight;
+        }
+      } else {
+        loadTasks();
+      }
+    });
+
+    function getStatusText(status) {
+      const map = {
+        pending: '等待中',
+        running: '安装中',
+        completed: '已完成',
+        failed: '失败'
+      };
+      return map[status] || status;
+    }
+
+    function formatTime(time) {
+      if (!time) return 'N/A';
+      const date = new Date(time);
+      return date.toLocaleString('zh-CN');
+    }
+
+    // 初始加载
+    loadTasks();
+    setInterval(loadTasks, 5000); // 每 5 秒刷新一次
+  </script>
+</body>
+</html>

@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw Remote Installer - 安装向导</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-size: 42px;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .header p {
+      font-size: 18px;
+      opacity: 0.9;
+    }
+
+    .wizard-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      margin-bottom: 30px;
+    }
+
+    .steps {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #e5e7eb;
+      z-index: 0;
+    }
+
+    .step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .step.active .step-circle {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      transform: scale(1.1);
+    }
+
+    .step.completed .step-circle {
+      background: #10b981;
+      color: white;
+    }
+
+    .step-label {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .step.active .step-label {
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .step-content {
+      display: none;
+    }
+
+    .step-content.active {
+      display: block;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .method-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .method-card {
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 24px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .method-card:hover {
+      border-color: #667eea;
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+    }
+
+    .method-card.selected {
+      border-color: #667eea;
+      background: #f0f4ff;
+    }
+
+    .method-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .method-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .method-desc {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .method-badge {
+      display: inline-block;
+      background: #10b981;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 15px;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .form-group small {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d5db;
+      box-shadow: none;
+    }
+
+    .wizard-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 30px;
+    }
+
+    .info-box {
+      background: #f0f9ff;
+      border-left: 4px solid #3b82f6;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+
+    .info-box.warning {
+      background: #fef3c7;
+      border-left-color: #f59e0b;
+    }
+
+    .info-box.success {
+      background: #d1fae5;
+      border-left-color: #10b981;
+    }
+
+    .command-box {
+      background: #1f2937;
+      color: #f3f4f6;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+      margin: 12px 0;
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #374151;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      background: #4b5563;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 15px 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.3s ease;
+    }
+
+    .log-box {
+      max-height: 300px;
+      overflow-y: auto;
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      color: #374151;
+    }
+
+    .log-error {
+      color: #dc2626;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #e5e7eb;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+
+    .checklist li {
+      padding: 12px 0;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+    }
+
+    .checklist li:last-child {
+      border-bottom: none;
+    }
+
+    .checklist li::before {
+      content: '✓';
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      background: #10b981;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 24px;
+      margin-right: 12px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🦞 OpenClaw 远程安装向导</h1>
+      <p>一步步帮朋友安装 OpenClaw</p>
+    </div>
+
+    <div class="wizard-card">
+      <!-- 步骤指示器 -->
+      <div class="steps">
+        <div class="step active" data-step="1">
+          <div class="step-circle">1</div>
+          <div class="step-label">选择方式</div>
+        </div>
+        <div class="step" data-step="2">
+          <div class="step-circle">2</div>
+          <div class="step-label">配置连接</div>
+        </div>
+        <div class="step" data-step="3">
+          <div class="step-circle">3</div>
+          <div class="step-label">填写信息</div>
+        </div>
+        <div class="step" data-step="4">
+          <div class="step-circle">4</div>
+          <div class="step-label">开始安装</div>
+        </div>
+      </div>
+
+      <!-- 步骤 1: 选择连接方式 -->
+      <div class="step-content active" data-step="1">
+        <h2 style="margin-bottom: 20px;">选择连接方式</h2>
+        
+        <div class="method-cards">
+          <div class="method-card" data-method="tailscale">
+            <div class="method-icon">🔗</div>
+            <div class="method-title">Tailscale</div>
+            <div class="method-desc">
+              自动穿透 NAT，无需公网 IP<br>
+              适合长期使用，速度快
+            </div>
+            <div class="method-badge">推荐</div>
+          </div>
+
+          <div class="method-card" data-method="screenshare">
+            <div class="method-icon">🖥️</div>
+            <div class="method-title">屏幕共享</div>
+            <div class="method-desc">
+              macOS 原生支持<br>
+              适合一次性安装，最简单
+            </div>
+            <div class="method-badge">最简单</div>
+          </div>
+        </div>
+
+        <div class="wizard-actions">
+          <button class="btn btn-secondary" disabled>上一步</button>
+          <button class="btn" id="step1Next" disabled>下一步</button>
+        </div>
+      </div>
+
+      <!-- 步骤 2: 配置连接 -->
+      <div class="step-content" data-step="2">
+        <div id="tailscaleSetup" style="display: none;">
+          <h2 style="margin-bottom: 20px;">配置 Tailscale</h2>
+          
+          <div class="info-box">
+            <strong>📱 你的电脑</strong><br>
+            请先在你的电脑上配置 Tailscale
+          </div>
+
+          <div class="command-box">
+            <button class="copy-btn" onclick="copyCommand('cmd1')">复制</button>
+            <div id="cmd1">brew install tailscale<br>sudo tailscale up<br>tailscale ip -4</div>
+          </div>
+
+          <div class="info-box warning">
+            <strong>💻 朋友的 Mac</strong><br>
+            让朋友在他的 Mac 上执行相同的命令
+          </div>
+
+          <div class="command-box">
+            <button class="copy-btn" onclick="copyCommand('cmd2')">复制</button>
+            <div id="cmd2">brew install tailscale<br>sudo tailscale up<br>tailscale ip -4</div>
+          </div>
+
+          <div class="info-box success">
+            <strong>✅ 完成后</strong><br>
+            朋友会获得一个 Tailscale IP（例如 100.64.1.2），记下这个 IP
+          </div>
+        </div>
+
+        <div id="screenshareSetup" style="display: none;">
+          <h2 style="margin-bottom: 20px;">使用屏幕共享</h2>
+          
+          <div class="info-box">
+            <strong>📱 让朋友执行以下步骤：</strong>
+          </div>
+
+          <ul class="checklist">
+            <li>打开"系统设置"</li>
+            <li>进入"通用" → "共享"</li>
+            <li>开启"屏幕共享"</li>
+            <li>点击"生成链接"按钮</li>
+            <li>将生成的链接发送给你</li>
+          </ul>
+
+          <div class="info-box warning">
+            <strong>🔗 收到链接后</strong><br>
+            打开链接，你就能控制朋友的屏幕了。然后打开终端，手动执行安装命令。
+          </div>
+
+          <div class="command-box">
+            <button class="copy-btn" onclick="copyCommand('cmd3')">复制</button>
+            <div id="cmd3">npm install -g openclaw<br>openclaw init<br>openclaw gateway start</div>
+          </div>
+        </div>
+
+        <div class="wizard-actions">
+          <button class="btn btn-secondary" id="step2Prev">上一步</button>
+          <button class="btn" id="step2Next">下一步</button>
+        </div>
+      </div>
+
+      <!-- 步骤 3: 填写信息 -->
+      <div class="step-content" data-step="3">
+        <h2 style="margin-bottom: 20px;">填写目标 Mac 信息</h2>
+        
+        <form id="installForm">
+          <div class="form-group">
+            <label for="name">任务名称</label>
+            <input type="text" id="name" placeholder="例如：朋友的 Mac" required>
+          </div>
+
+          <div class="form-group" id="hostGroup">
+            <label for="host">主机地址</label>
+            <input type="text" id="host" placeholder="100.64.1.2 (Tailscale IP)" required>
+            <small>填写朋友的 Tailscale IP 地址</small>
+          </div>
+
+          <div class="form-group">
+            <label for="username">用户名</label>
+            <input type="text" id="username" placeholder="admin" required>
+            <small>朋友 Mac 的用户名</small>
+          </div>
+
+          <div class="form-group">
+            <label for="authMethod">认证方式</label>
+            <select id="authMethod">
+              <option value="key">SSH 密钥</option>
+              <option value="password">密码</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="keyPathGroup">
+            <label for="keyPath">SSH 密钥路径</label>
+            <input type="text" id="keyPath" placeholder="~/.ssh/id_rsa">
+          </div>
+
+          <div class="form-group" id="passwordGroup" style="display: none;">
+            <label for="password">密码</label>
+            <input type="password" id="password" placeholder="••••••••">
+          </div>
+        </form>
+
+        <div class="wizard-actions">
+          <button class="btn btn-secondary" id="step3Prev">上一步</button>
+          <button class="btn" id="step3Next">测试连接</button>
+        </div>
+      </div>
+
+      <!-- 步骤 4: 开始安装 -->
+      <div class="step-content" data-step="4">
+        <h2 style="margin-bottom: 20px;">安装进度</h2>
+        
+        <div id="installStatus">
+          <div class="info-box">
+            <strong>准备开始安装...</strong>
+          </div>
+        </div>
+
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+        </div>
+
+        <div id="installProgress" style="text-align: center; margin: 20px 0; color: #666;">
+          0% - 准备中...
+        </div>
+
+        <div class="log-box" id="logBox">
+          <div class="log-entry">等待开始...</div>
+        </div>
+
+        <div class="wizard-actions">
+          <button class="btn btn-secondary" id="step4Prev" disabled>上一步</button>
+          <button class="btn" id="step4Start">开始安装</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let currentStep = 1;
+    let selectedMethod = null;
+    let taskId = null;
+
+    // 选择连接方式
+    document.querySelectorAll('.method-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedMethod = card.dataset.method;
+        document.getElementById('step1Next').disabled = false;
+      });
+    });
+
+    // 步骤导航
+    document.getElementById('step1Next').addEventListener('click', () => {
+      if (selectedMethod === 'tailscale') {
+        document.getElementById('tailscaleSetup').style.display = 'block';
+        document.getElementById('screenshareSetup').style.display = 'none';
+        document.getElementById('hostGroup').querySelector('small').textContent = '填写朋友的 Tailscale IP 地址';
+      } else {
+        document.getElementById('tailscaleSetup').style.display = 'none';
+        document.getElementById('screenshareSetup').style.display = 'block';
+        document.getElementById('hostGroup').querySelector('small').textContent = '如果在同一局域网，填写局域网 IP';
+      }
+      goToStep(2);
+    });
+
+    document.getElementById('step2Prev').addEventListener('click', () => goToStep(1));
+    document.getElementById('step2Next').addEventListener('click', () => goToStep(3));
+    document.getElementById('step3Prev').addEventListener('click', () => goToStep(2));
+    
+    document.getElementById('step3Next').addEventListener('click', async () => {
+      // 测试连接
+      const host = document.getElementById('host').value;
+      const username = document.getElementById('username').value;
+      
+      if (!host || !username) {
+        alert('请填写完整信息');
+        return;
+      }
+
+      document.getElementById('step3Next').disabled = true;
+      document.getElementById('step3Next').innerHTML = '<span class="spinner"></span> 测试中...';
+
+      // 这里可以添加实际的连接测试
+      setTimeout(() => {
+        document.getElementById('step3Next').disabled = false;
+        document.getElementById('step3Next').textContent = '测试连接';
+        goToStep(4);
+      }, 2000);
+    });
+
+    document.getElementById('step4Start').addEventListener('click', async () => {
+      const data = {
+        name: document.getElementById('name').value,
+        method: 'ssh',
+        host: document.getElementById('host').value,
+        username: document.getElementById('username').value
+      };
+
+      const authMethod = document.getElementById('authMethod').value;
+      if (authMethod === 'password') {
+        data.password = document.getElementById('password').value;
+      } else {
+        data.keyPath = document.getElementById('keyPath').value;
+      }
+
+      document.getElementById('step4Start').disabled = true;
+      document.getElementById('step4Start').innerHTML = '<span class="spinner"></span> 安装中...';
+
+      try {
+        const response = await fetch('/api/install', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          taskId = result.taskId;
+          updateInstallStatus('安装任务已创建，开始执行...');
+        } else {
+          alert('创建失败: ' + result.error);
+          document.getElementById('step4Start').disabled = false;
+          document.getElementById('step4Start').textContent = '开始安装';
+        }
+      } catch (err) {
+        alert('网络错误: ' + err.message);
+        document.getElementById('step4Start').disabled = false;
+        document.getElementById('step4Start').textContent = '开始安装';
+      }
+    });
+
+    // 认证方式切换
+    document.getElementById('authMethod').addEventListener('change', (e) => {
+      if (e.target.value === 'password') {
+        document.getElementById('keyPathGroup').style.display = 'none';
+        document.getElementById('passwordGroup').style.display = 'block';
+      } else {
+        document.getElementById('keyPathGroup').style.display = 'block';
+        document.getElementById('passwordGroup').style.display = 'none';
+      }
+    });
+
+    // WebSocket 更新
+    socket.on('task-update', (task) => {
+      if (task.id === taskId) {
+        updateProgress(task.progress);
+        
+        if (task.logs && task.logs.length > 0) {
+          const logBox = document.getElementById('logBox');
+          logBox.innerHTML = task.logs.map(log => `
+            <div class="log-entry ${log.level === 'error' ? 'log-error' : ''}">
+              ${log.message}
+            </div>
+          `).join('');
+          logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        if (task.status === 'completed') {
+          updateInstallStatus('✅ 安装完成！');
+          document.getElementById('step4Start').textContent = '安装完成';
+        } else if (task.status === 'failed') {
+          updateInstallStatus('❌ 安装失败: ' + task.error);
+          document.getElementById('step4Start').disabled = false;
+          document.getElementById('step4Start').textContent = '重试';
+        }
+      }
+    });
+
+    function goToStep(step) {
+      // 更新步骤指示器
+      document.querySelectorAll('.step').forEach(s => {
+        const stepNum = parseInt(s.dataset.step);
+        s.classList.remove('active', 'completed');
+        if (stepNum === step) {
+          s.classList.add('active');
+        } else if (stepNum < step) {
+          s.classList.add('completed');
+        }
+      });
+
+      // 更新内容
+      document.querySelectorAll('.step-content').forEach(c => {
+        c.classList.remove('active');
+      });
+      document.querySelector(`.step-content[data-step="${step}"]`).classList.add('active');
+
+      currentStep = step;
+    }
+
+    function updateProgress(progress) {
+      document.getElementById('progressBar').style.width = progress + '%';
+      document.getElementById('installProgress').textContent = progress + '% - 安装中...';
+    }
+
+    function updateInstallStatus(message) {
+      document.getElementById('installStatus').innerHTML = `
+        <div class="info-box success">
+          <strong>${message}</strong>
+        </div>
+      `;
+    }
+
+    function copyCommand(id) {
+      const text = document.getElementById(id).textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('已复制到剪贴板');
+      });
+    }
+  </script>
+</body>
+</html>

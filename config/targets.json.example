@@ -1,0 +1,33 @@
+{
+  "targets": [
+    {
+      "name": "朋友的 MacBook Pro",
+      "method": "vnc",
+      "host": "192.168.1.100",
+      "username": "friend",
+      "password": "your-vnc-password",
+      "port": 5900
+    },
+    {
+      "name": "办公室 Mac Mini",
+      "method": "ssh",
+      "host": "office-mac.local",
+      "username": "admin",
+      "keyPath": "~/.ssh/id_rsa"
+    },
+    {
+      "name": "测试机器",
+      "method": "ssh",
+      "host": "test-mac.example.com",
+      "username": "test",
+      "password": "test-password"
+    }
+  ],
+  "defaults": {
+    "installHomebrew": true,
+    "installNode": true,
+    "setupWorkspace": true,
+    "startService": true,
+    "testInstallation": true
+  }
+}
