@@ -1,4 +1,44 @@
-# Remote macOS Install - OpenClaw Skill
+# OpenClaw Remote Installer
+
+[![GitHub release](https://img.shields.io/github/v/release/MaydayV/Openclaw-remote-macos-install)](https://github.com/MaydayV/Openclaw-remote-macos-install/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
+
+远程安装和配置 OpenClaw 到 macOS 系统的完整解决方案。
+
+## 🚀 快速安装
+
+### 方式 1: 独立安装包（推荐）
+
+```bash
+# 下载
+curl -L https://github.com/MaydayV/Openclaw-remote-macos-install/releases/download/v1.0.0/openclaw-installer-v1.0.0.tar.gz -o installer.tar.gz
+
+# 解压
+tar -xzf installer.tar.gz
+cd openclaw-installer-standalone
+
+# 一键启动
+./quick-start.sh
+```
+
+### 方式 2: 克隆仓库
+
+```bash
+git clone https://github.com/MaydayV/Openclaw-remote-macos-install.git
+cd Openclaw-remote-macos-install
+npm install
+./start.sh
+```
+
+### 方式 3: npm（即将推出）
+
+```bash
+npm install -g @openclaw/remote-installer
+openclaw-installer
+```
+
+---
 
 远程安装 OpenClaw 到 macOS 系统的完整解决方案。
 
