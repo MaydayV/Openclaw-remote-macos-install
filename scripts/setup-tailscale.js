@@ -7,8 +7,10 @@
 
 const { exec } = require('child_process');
 const { promisify } = require('util');
-const chalk = require('chalk');
-const ora = require('ora');
+const chalkPkg = require('chalk');
+const chalk = chalkPkg.default || chalkPkg;
+const oraPkg = require('ora');
+const ora = oraPkg.default || oraPkg;
 const inquirer = require('inquirer');
 
 const execAsync = promisify(exec);

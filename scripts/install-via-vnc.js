@@ -6,8 +6,10 @@
  */
 
 const vnc = require('@vnc/vnc');
-const chalk = require('chalk');
-const ora = require('ora');
+const chalkPkg = require('chalk');
+const chalk = chalkPkg.default || chalkPkg;
+const oraPkg = require('ora');
+const ora = oraPkg.default || oraPkg;
 const { createCanvas, loadImage } = require('canvas');
 
 class VNCInstaller {

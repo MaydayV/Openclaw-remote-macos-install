@@ -6,74 +6,15 @@
 
 远程安装和配置 OpenClaw 到 macOS 系统的完整解决方案。
 
-## 🚀 快速安装
+## 🚀 快速开始
 
-### 方式 1: 独立安装包（推荐）
-
-```bash
-# 下载
-curl -L https://github.com/MaydayV/Openclaw-remote-macos-install/releases/download/v1.0.0/openclaw-installer-v1.0.0.tar.gz -o installer.tar.gz
-
-# 解压
-tar -xzf installer.tar.gz
-cd openclaw-installer-standalone
-
-# 一键启动
-./quick-start.sh
-```
-
-### 方式 2: 克隆仓库
+### 方式 1: Web 界面（最推荐）
 
 ```bash
 git clone https://github.com/MaydayV/Openclaw-remote-macos-install.git
 cd Openclaw-remote-macos-install
 npm install
-./start.sh
-```
-
-### 方式 3: npm（即将推出）
-
-```bash
-npm install -g @openclaw/remote-installer
-openclaw-installer
-```
-
----
-
-远程安装 OpenClaw 到 macOS 系统的完整解决方案。
-
-## 特性
-
-- ✅ **三种连接方式**: SSH、VNC、屏幕共享链接
-- ✅ **解决无公网 IP 问题**: 内置 Tailscale 配置助手
-- ✅ **自动环境检测**: 自动检查并安装依赖（Homebrew、Node.js）
-- ✅ **完整安装流程**: 从零到完成，全自动化
-- ✅ **批量部署**: 支持同时安装到多台 Mac
-- ✅ **实时进度**: 清晰的进度提示和状态反馈
-- ✅ **错误处理**: 自动重试和回滚机制
-- ✅ **安装报告**: 详细的安装日志和报告
-- ✅ **Web 界面**: 美观的管理界面，支持多任务
-
-## 快速开始
-
-### 一键启动（推荐）
-
-```bash
-cd ~/.openclaw/workspace/skills/remote-macos-install
-./start.sh
-```
-
-选择启动方式：
-1. **Web 界面** - 最直观，支持多任务管理
-2. **命令行交互式** - 适合单次安装
-3. **SSH 直接安装** - 快速安装单台
-4. **批量安装** - 同时安装多台
-
-### Web 界面（推荐）
-
-```bash
-cd ~/.openclaw/workspace/skills/remote-macos-install
-node scripts/web-server.js
+npm run web
 ```
 
 然后打开浏览器访问: `http://localhost:3456`
@@ -84,117 +25,164 @@ node scripts/web-server.js
 - 📊 多任务并行管理
 - 📝 实时日志查看
 - 📱 二维码扫描访问
+- 🎯 表单输入，无需记命令
 
-### 1. 安装依赖
+### 方式 2: 交互式终端
 
 ```bash
-cd ~/.openclaw/workspace/skills/remote-macos-install
+git clone https://github.com/MaydayV/Openclaw-remote-macos-install.git
+cd Openclaw-remote-macos-install
+npm install
+node scripts/main.js
+```
+
+**特性**：
+- 🎯 菜单式选择
+- 📝 逐步引导输入
+- ✅ 自动测试连接
+- 📋 安装前确认
+
+### 方式 3: 命令行直接安装
+
+```bash
+# SSH 密钥方式（推荐）
+node scripts/install-via-ssh.js \
+  --host <目标Mac的IP> \
+  --username <用户名> \
+  --keyPath ~/.ssh/id_ed25519
+
+# SSH 密码方式
+node scripts/install-via-ssh.js \
+  --host <目标Mac的IP> \
+  --username <用户名> \
+  --password '<密码>'
+```
+
+## ✨ 核心特性
+
+- ✅ **三种使用方式**: Web界面、交互式终端、命令行
+- ✅ **SSH 连接优化**: 自动重试、keepalive、超时控制
+- ✅ **路径智能处理**: 支持 `~` 展开，密钥延迟加载
+- ✅ **自动环境检测**: 自动检查并安装依赖（Homebrew、Node.js）
+- ✅ **完整安装流程**: 从零到完成，全自动化
+- ✅ **批量部署**: 支持同时安装到多台 Mac
+- ✅ **实时进度**: 清晰的进度提示和状态反馈
+- ✅ **错误处理**: 命令级重试机制
+- ✅ **安装报告**: 详细的安装日志和报告
+- ✅ **测试套件**: 完整的冒烟测试和验证
+
+## 📋 前置要求
+
+### 本机（执行安装的机器）
+- Node.js >= 18.0.0
+- npm
+- Git
+
+### 目标 Mac（被安装的机器）
+- macOS 10.15+
+- 开启远程登录（SSH）
+  - 系统设置 → 通用 → 共享 → 远程登录 → 开启
+- 网络可达（同一局域网或通过 Tailscale）
+
+## 🔧 安装步骤
+
+### 1. 克隆仓库并安装依赖
+
+```bash
+git clone https://github.com/MaydayV/Openclaw-remote-macos-install.git
+cd Openclaw-remote-macos-install
 npm install
 ```
 
-### 2. 准备目标 Mac
-
-#### 方式 A: SSH (推荐)
-```bash
-# 在目标 Mac 上开启远程登录
-系统设置 → 通用 → 共享 → 远程登录 → 开启
-```
-
-**⚠️ 如果没有公网 IP（大部分情况）**：
-
-使用 Tailscale 内网穿透（最简单）：
+### 2. 运行测试（可选但推荐）
 
 ```bash
-# 1. 配置 Tailscale
-./start.sh
-# 选择 5) 配置 Tailscale
-
-# 2. 在目标 Mac 上也安装 Tailscale
-brew install tailscale
-sudo tailscale up
-tailscale ip -4  # 获取 Tailscale IP
-
-# 3. 使用 Tailscale IP 连接（100.64.x.x）
+npm test
 ```
 
-详细方案请查看：[NAT-SOLUTIONS.md](NAT-SOLUTIONS.md)
+### 3. 选择使用方式
 
-#### 方式 B: VNC
+#### Web 界面（推荐）
 ```bash
-# 在目标 Mac 上开启屏幕共享
-系统设置 → 通用 → 共享 → 屏幕共享 → 开启
+npm run web
+# 打开浏览器访问 http://localhost:3456
 ```
 
-#### 方式 C: 屏幕共享链接
-```bash
-# 在目标 Mac 上生成链接
-系统设置 → 通用 → 共享 → 屏幕共享 → 生成链接
-```
-
-### 3. 运行安装
-
-#### 交互式安装（推荐）
+#### 交互式终端
 ```bash
 node scripts/main.js
 ```
 
-#### SSH 方式
+#### 命令行直接安装
+```bash
+node scripts/install-via-ssh.js --host <IP> --username <user> --keyPath ~/.ssh/id_ed25519
+```
+
+## 🌐 解决无公网 IP 问题
+
+如果目标 Mac 没有公网 IP（大部分情况），推荐使用 Tailscale：
+
+```bash
+# 1. 在本机和目标 Mac 上都安装 Tailscale
+brew install tailscale
+sudo tailscale up
+
+# 2. 获取目标 Mac 的 Tailscale IP
+tailscale ip -4  # 例如: 100.64.x.x
+
+# 3. 使用 Tailscale IP 连接
+node scripts/install-via-ssh.js \
+  --host 100.64.x.x \
+  --username <user> \
+  --keyPath ~/.ssh/id_ed25519
+```
+
+详细方案请查看：[NAT-SOLUTIONS.md](NAT-SOLUTIONS.md)
+
+## 📖 使用场景
+
+### 场景 1: 帮朋友远程安装
+
+**使用 Web 界面**：
+1. 启动 Web 服务：`npm run web`
+2. 打开浏览器访问 `http://localhost:3456`
+3. 填写朋友 Mac 的连接信息
+4. 点击"开始安装"，实时查看进度
+
+### 场景 2: 批量部署到公司多台 Mac
+
+```bash
+# 1. 准备配置文件
+cat > config/company-macs.json << 'EOF'
+{
+  "targets": [
+    {"name": "Mac1", "method": "ssh", "host": "mac1.company.com", "username": "admin", "keyPath": "~/.ssh/id_rsa"},
+    {"name": "Mac2", "method": "ssh", "host": "mac2.company.com", "username": "admin", "keyPath": "~/.ssh/id_rsa"},
+    {"name": "Mac3", "method": "ssh", "host": "mac3.company.com", "username": "admin", "keyPath": "~/.ssh/id_rsa"}
+  ]
+}
+EOF
+
+# 2. 批量安装
+node scripts/batch-install.js config/company-macs.json
+```
+
+### 场景 3: 快速单机安装
+
 ```bash
 node scripts/install-via-ssh.js \
   --host 192.168.1.100 \
-  --username user \
-  --keyPath ~/.ssh/id_rsa
+  --username admin \
+  --keyPath ~/.ssh/id_ed25519
 ```
 
-#### VNC 方式
-```bash
-node scripts/install-via-vnc.js \
-  --host 192.168.1.100 \
-  --username user \
-  --password your-password
-```
-
-#### 批量安装
-```bash
-# 1. 复制配置文件模板
-cp config/targets.json.example config/targets.json
-
-# 2. 编辑配置文件
-nano config/targets.json
-
-# 3. 执行批量安装
-node scripts/batch-install.js config/targets.json
-```
-
-## 配置文件示例
-
-```json
-{
-  "targets": [
-    {
-      "name": "朋友的 Mac",
-      "method": "ssh",
-      "host": "192.168.1.100",
-      "username": "friend",
-      "keyPath": "~/.ssh/id_rsa"
-    },
-    {
-      "name": "办公室 Mac",
-      "method": "vnc",
-      "host": "office-mac.local",
-      "username": "admin",
-      "password": "vnc-password"
-    }
-  ]
-}
-```
-
-## 安装流程
+## 🔍 安装流程
 
 ```
 1. 连接测试
-   ├─ 测试 SSH/VNC 连接
-   └─ 验证网络可达性
+   ├─ 测试 SSH 连接
+   ├─ 验证网络可达性
+   └─ 密钥/密码认证
 
 2. 环境检测
    ├─ 检查 macOS 版本
@@ -226,80 +214,62 @@ node scripts/batch-install.js config/targets.json
    └─ 生成安装报告
 ```
 
-## 使用场景
+## 🛠️ 技术特性
 
-### 场景 1: 帮朋友安装
+### SSH 连接优化
+- ✅ 自动重试机制（命令级重试，可配置次数和延迟）
+- ✅ Keepalive 保持连接（10秒间隔，最多3次失败）
+- ✅ 连接超时控制（20秒超时）
+- ✅ 密钥延迟加载（避免构造时文件不存在崩溃）
+- ✅ 路径智能展开（支持 `~/.ssh/id_rsa` 自动展开）
+
+### 安装稳定性
+- ✅ 非交互式 Homebrew 安装（`NONINTERACTIVE=1`）
+- ✅ 幂等 PATH 配置（重复执行不会重复添加）
+- ✅ 命令执行状态检查
+- ✅ 详细错误提示
+
+### 测试与验证
+- ✅ 完整的测试套件（`npm test`）
+- ✅ 依赖包完整性检查
+- ✅ 脚本文件完整性检查
+- ✅ SSH 连接测试（可选）
+
+## 🧪 测试
+
 ```bash
-# 朋友开启屏幕共享，发送链接给你
-# 你运行交互式安装
-node scripts/main.js
-# 选择 "屏幕共享链接" 方式
-# 粘贴链接，自动完成安装
+# 运行完整测试套件
+npm test
+
+# 测试 SSH 连接（可选）
+npm test -- --host <IP> --username <user> --keyPath ~/.ssh/id_ed25519
 ```
 
-### 场景 2: 批量部署到公司多台 Mac
-```bash
-# 1. 准备配置文件
-cat > config/company-macs.json << 'EOF'
-{
-  "targets": [
-    {"name": "Mac1", "method": "ssh", "host": "mac1.company.com", ...},
-    {"name": "Mac2", "method": "ssh", "host": "mac2.company.com", ...},
-    {"name": "Mac3", "method": "ssh", "host": "mac3.company.com", ...}
-  ]
-}
-EOF
-
-# 2. 批量安装
-node scripts/batch-install.js config/company-macs.json
-
-# 3. 查看报告
-cat logs/batch-install-report.json
-```
-
-### 场景 3: 远程排查问题
-```bash
-# SSH 连接到有问题的 Mac
-node scripts/install-via-ssh.js \
-  --host problem-mac.local \
-  --username admin \
-  --keyPath ~/.ssh/id_rsa
-
-# 自动检测环境、重新安装、测试验证
-```
-
-## 安全建议
+## 🔒 安全建议
 
 1. **使用 SSH 密钥**: 优先使用 SSH 密钥而非密码
-2. **加密连接**: VNC 连接建议通过 SSH 隧道
+2. **加密连接**: 所有连接通过 SSH 加密
 3. **限制访问**: 只在可信网络中使用
 4. **清理凭证**: 安装完成后删除配置文件中的密码
 5. **日志审计**: 定期检查安装日志
 
-## 故障排查
+## 🐛 故障排查
 
 ### SSH 连接失败
+
 ```bash
 # 检查 SSH 服务
 ssh user@host "echo 'SSH OK'"
 
 # 检查密钥权限
-chmod 600 ~/.ssh/id_rsa
+chmod 600 ~/.ssh/id_ed25519
 
 # 测试连接
 ssh -v user@host
 ```
 
-### VNC 连接失败
-```bash
-# 检查 VNC 端口
-nc -zv host 5900
-
-# 检查防火墙
-# 在目标 Mac 上: 系统设置 → 网络 → 防火墙
-```
-
 ### 安装失败
+
 ```bash
 # 查看详细日志
 cat logs/install-*.log
@@ -308,37 +278,49 @@ cat logs/install-*.log
 ssh user@host "npm install -g openclaw"
 ```
 
-## 开发
+### Web 界面无法访问
 
-### 添加新功能
 ```bash
-# 1. 创建新脚本
-touch scripts/my-feature.js
+# 检查服务是否运行
+ps aux | grep web-server
 
-# 2. 实现功能
-# ...
+# 检查端口占用
+lsof -i :3456
 
-# 3. 添加到 package.json
-npm run my-feature
+# 重启服务
+npm run web
 ```
 
-### 测试
-```bash
-# 单元测试
-npm test
+## 📝 更新日志
 
-# 集成测试
-npm run test:integration
-```
+### v1.0.1 (2026-03-11)
+- ✅ 新增 Web 界面支持
+- ✅ 新增交互式终端模式
+- ✅ 优化 SSH 连接稳定性
+- ✅ 添加命令级重试机制
+- ✅ 修复密钥路径展开问题
+- ✅ 添加完整测试套件
+- ✅ 改进错误提示和日志
 
-## 贡献
+### v1.0.0 (2026-03-07)
+- 🎉 首次发布
+- ✅ SSH 远程安装支持
+- ✅ 自动环境检测
+- ✅ 批量部署支持
+
+## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
 
-## 许可
+## 📄 许可
 
 MIT License
 
-## 致谢
+## 🙏 致谢
 
 灵感来源于 [mcp-remote-macos-use](https://github.com/baryhuang/mcp-remote-macos-use)
+
+## 📞 支持
+
+- GitHub Issues: https://github.com/MaydayV/Openclaw-remote-macos-install/issues
+- Discord: [OpenClaw Community](https://discord.com/invite/clawd)

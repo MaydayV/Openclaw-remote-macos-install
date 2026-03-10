@@ -8,8 +8,10 @@
 const { Client } = require('ssh2');
 const fs = require('fs');
 const path = require('path');
-const chalk = require('chalk');
-const ora = require('ora');
+const chalkPkg = require('chalk');
+const chalk = chalkPkg.default || chalkPkg;
+const oraPkg = require('ora');
+const ora = oraPkg.default || oraPkg;
 const inquirer = require('inquirer');
 
 class CompleteInstaller {

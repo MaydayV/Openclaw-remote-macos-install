@@ -6,8 +6,10 @@
 
 const fs = require('fs');
 const path = require('path');
-const chalk = require('chalk');
-const ora = require('ora');
+const chalkPkg = require('chalk');
+const chalk = chalkPkg.default || chalkPkg;
+const oraPkg = require('ora');
+const ora = oraPkg.default || oraPkg;
 const SSHInstaller = require('./install-via-ssh');
 const VNCInstaller = require('./install-via-vnc');
 

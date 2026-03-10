@@ -6,14 +6,23 @@
  */
 
 const inquirer = require('inquirer');
-const chalk = require('chalk');
+const chalkPkg = require('chalk');
+const chalk = chalkPkg.default || chalkPkg;
 const boxen = require('boxen');
 const fs = require('fs');
 const path = require('path');
 
 // 导入安装器
 const SSHInstaller = require('./install-via-ssh');
-const VNCInstaller = require('./install-via-vnc');
+
+function getVNCInstaller() {
+  try {
+    // 延迟加载，避免未安装 VNC 依赖时影响 SSH 主流程
+    return require('./install-via-vnc');
+  } catch (err) {
+    throw new Error('VNC 依赖未安装，请先执行: npm install @vnc/vnc canvas');
+  }
+}
 
 class RemoteInstaller {
   constructor() {
@@ -204,6 +213,7 @@ class RemoteInstaller {
         await installer.connect();
         await installer.disconnect();
       } else if (method === 'vnc') {
+        const VNCInstaller = getVNCInstaller();
         const installer = new VNCInstaller(config);
         await installer.connect();
         await installer.disconnect();
@@ -242,6 +252,7 @@ class RemoteInstaller {
         const installer = new SSHInstaller(config);
         await installer.install();
       } else if (method === 'vnc') {
+        const VNCInstaller = getVNCInstaller();
         const installer = new VNCInstaller(config);
         await installer.install();
       } else if (method === 'browser') {
